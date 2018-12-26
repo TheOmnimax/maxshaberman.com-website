@@ -1,13 +1,20 @@
 const SINGLELINE = document.querySelector("#single");
+const CONVERTED = document.querySelector(".converted");
 
 var content; //The original content.
-var converted; //This will be the content converted to HTML format.
+var converted = ""; //This will be the content converted to HTML format. Set to blank in case copied before used.
 var codeDisplay; //This is the converted content displayed in the HTML code format, such as symbols like < changed to &lt;.
 var oList; //Determines the current list level. 0 is none, 1 is numbers, 2 is lowercase letters, 3 is lowercase Roman numerals, 4 is uppercase letters, 5 is uppercase roman numerals
 var uList; //Same as above, but for an unordered list.
 // var type; //List type directly related to oList, in order 1, a, i, A, I.
 var i; //Index of content, slowly going up as each character is checked in the For loop.
 var pStart; //True if a <p> tag has started.
+
+const SAMPLE = document.querySelector(".sample");
+const CODEDISPLAY = document.querySelector("#codeDisplay");
+const SELECTION = window.getSelection(); //Creates an object for selecting text.
+const RANGE = document.createRange(); //Creates a range to be used later for copying text.
+const COPY = document.querySelector(".copy"); //The SPAN tag to day when last copied.
 
 function tabSetting(type, level){ //This adds in the right number of <ol> and <ul> tags, and their ending tags.
 	let currentLevel;
@@ -181,12 +188,11 @@ function uListEntry(type){ //Function for adding <li> tags for an unordered list
 }
 
 
-//Main function
+//MAIN FUNCTION
 function convert(){
 	// console.time("Convert");
 	let singleLine = SINGLELINE.checked;
 
-	codeDisplay = "<pre class=\"code\"><code>";
 	content = document.querySelector("#content").value;
 	oList = 0; //Determines the current list level. 0 is none, 1 is numbers, 2 is lowercase letters, 3 is lowercase Roman numerals, 4 is uppercase letters, 5 is uppercase roman numerals
 	uList = false; //Same as above, but for an unordered list.
@@ -264,6 +270,7 @@ function convert(){
 	//This is beginning of the endgame. The following if statements close any p, ul, or ol tags that may still be open.
 	endAll();
 	//For converting the <, >, and other character(s) to display the code.
+	codeDisplay = "";
 	for(i = 0; i < converted.length; i++){
 		if(converted.charAt(i) == "<"){
 			codeDisplay += "&lt;";
@@ -278,9 +285,53 @@ function convert(){
 			codeDisplay += converted.charAt(i);
 		}
 	}
-
-	codeDisplay += "</code></pre>";
-	var display = "<div class=\"sample\"><hr>" + codeDisplay + "<hr>" + converted + "</div>";
-	document.querySelector("#converted").innerHTML = display;
+	
+	CODEDISPLAY.innerHTML = codeDisplay;
+	SAMPLE.innerHTML = converted;
+	COPY.innerHTML = "";
+	// var display = "<div class=\"sample\"><hr>" + codeDisplay + "<hr>" + converted + "</div>";
+	// CONVERTED.innerHTML = display;
+	// toCLipboard();
 	// console.timeEnd("Convert");
-} //End of the main converted function. All functions after this just support this one.
+} //End of the main converted function. All functions before this just support this one.
+
+function leadingZero(num){ //For aesthetics. Takes single digit numbers, and adds a leading 0.
+	num = parseInt(num);
+	if(num < 10){
+		return '0' + num;
+	}
+	else{
+		return num;
+	}
+}
+function findAMPM(hour){ //returns an array, 0 is the hour, and 1 is the AM or PM. For example, hour 14 is 2 PM
+	if(hour == 12){
+		return [12, 'PM'];
+	}
+	else if((hour == 0) || (hour == 24)){
+		return [12, 'AM'];
+	}
+	else if(hour > 12){
+		return [hour-12, 'PM'];
+	}
+	else{
+		return [hour, 'AM'];
+	}
+}
+//https://alligator.io/js/copying-to-clipboard/
+function toCLipboard(){
+	if(CODEDISPLAY.innerHTML == ""){
+		COPY.innerHTML = "Nothing to copy."
+	}
+	else{
+		RANGE.selectNodeContents(CODEDISPLAY); //For the created range, adds the converted content.
+		SELECTION.removeAllRanges(); //Clears out the current selection.
+		SELECTION.addRange(RANGE); //Adds the converted content in the range to the selection.
+		document.execCommand('copy'); //Copies the text selected above.
+		SELECTION.removeAllRanges(); //Re-clears the range.
+
+		let date = new Date();
+		let hour = findAMPM(date.getHours())
+		COPY.innerHTML = "Copied " + hour[0] + ":" + leadingZero(date.getMinutes()) + ":" + leadingZero(date.getSeconds()) + " " + hour[1];
+	}
+}
